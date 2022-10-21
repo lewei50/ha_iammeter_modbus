@@ -4,20 +4,24 @@ import re
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PORT,
-                                 CONF_SCAN_INTERVAL)
+                                 CONF_SCAN_INTERVAL, CONF_TYPE)
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
 	DEFAULT_NAME,
 	DEFAULT_PORT,
 	DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TYPE,
 	DOMAIN,
+    TYPE_3080,
+    TYPE_3080T,
 )
 
 DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
         vol.Required(CONF_HOST): str,
+        vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080T, TYPE_3080]),
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
     }

@@ -1,4 +1,4 @@
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_NAME, CONF_TYPE
 from homeassistant.core import callback
 from homeassistant.components.sensor import SensorEntity
 import logging
@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 import homeassistant.util.dt as dt_util
 
-from .const import ATTR_MANUFACTURER, DOMAIN, SENSOR_TYPES, IamMeterModbusSensorEntityDescription
+from .const import ATTR_MANUFACTURER, DOMAIN, SENSOR_TYPES, SENSOR_TYPES_3080, TYPE_3080, TYPE_3080T, IamMeterModbusSensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_entities):
     hub_name = entry.data[CONF_NAME]
     hub = hass.data[DOMAIN][hub_name]["hub"]
+    device_type = entry.data[CONF_TYPE]
 
     device_info = {
         "identifiers": {(DOMAIN, hub_name)},
@@ -23,14 +24,24 @@ async def async_setup_entry(hass, entry, async_add_entities):
     }
 
     entities = []
-    for sensor_description in SENSOR_TYPES.values():
-        sensor = IamMeterModbusSensor(
-            hub_name,
-            hub,
-            device_info,
-            sensor_description,
-        )
-        entities.append(sensor)
+    if device_type == TYPE_3080T:
+        for sensor_description in SENSOR_TYPES.values():
+            sensor = IamMeterModbusSensor(
+                hub_name,
+                hub,
+                device_info,
+                sensor_description,
+            )
+            entities.append(sensor)
+    elif device_type == TYPE_3080:
+        for sensor_description in SENSOR_TYPES_3080.values():
+            sensor = IamMeterModbusSensor(
+                hub_name,
+                hub,
+                device_info,
+                sensor_description,
+            )
+            entities.append(sensor)
 
     async_add_entities(entities)
     return True
@@ -75,8 +86,8 @@ class IamMeterModbusSensor(SensorEntity):
 
     @property
     def unique_id(self) -> Optional[str]:
-        return f"{self._platform_name}_{self.entity_description.key}"  
-    
+        return f"{self._platform_name}_{self.entity_description.key}"
+
     @property
     def native_value(self):
         """Return the state of the sensor."""

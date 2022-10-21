@@ -23,10 +23,14 @@ from homeassistant.const import (
     POWER_WATT,
 )
 
+TYPE_3080 = "WEM3080"
+TYPE_3080T = "WEM3080T"
+
 DOMAIN = "iammeter_modbus"
 DEFAULT_NAME = "IamMeter"
 DEFAULT_SCAN_INTERVAL = 2
 DEFAULT_PORT = 502
+DEFAULT_TYPE = TYPE_3080T
 CONF_IamMeter_HUB = "iammeter_hub"
 ATTR_MANUFACTURER = "IamMeter"
 
@@ -34,7 +38,7 @@ ATTR_MANUFACTURER = "IamMeter"
 class IamMeterModbusSensorEntityDescription(SensorEntityDescription):
     """A class that describes IamMeter Modbus sensor entities."""
 
-SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {  
+SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
     "voltage_a": IamMeterModbusSensorEntityDescription(
     	name="Voltage L1",
     	key="voltage_a",
@@ -73,7 +77,7 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 		key="power_factor_a",
 		native_unit_of_measurement=PERCENTAGE,
         device_class=DEVICE_CLASS_POWER_FACTOR,
-	),	
+	),
 	"voltage_b": IamMeterModbusSensorEntityDescription(
     	name="Voltage L2",
     	key="voltage_b",
@@ -175,6 +179,42 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 	"total_export_energy": IamMeterModbusSensorEntityDescription(
 		name="Total Export Energy",
 		key="total_export_energy",
+		native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        device_class=DEVICE_CLASS_ENERGY,
+        state_class=STATE_CLASS_TOTAL_INCREASING,
+    ),
+}
+
+SENSOR_TYPES_3080: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
+    "voltage_a": IamMeterModbusSensorEntityDescription(
+    	name="Voltage",
+    	key="voltage_a",
+    	native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
+        device_class=DEVICE_CLASS_VOLTAGE,
+    ),
+	"current_a": IamMeterModbusSensorEntityDescription(
+		name="Current",
+		key="current_a",
+		native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        device_class=DEVICE_CLASS_CURRENT,
+	),
+	"power_a": IamMeterModbusSensorEntityDescription(
+    	name="Power",
+    	key="power_a",
+    	native_unit_of_measurement=POWER_WATT,
+        device_class=DEVICE_CLASS_POWER,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+	"import_energy_a": IamMeterModbusSensorEntityDescription(
+		name="Import Energy",
+		key="import_energy_a",
+		native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        device_class=DEVICE_CLASS_ENERGY,
+        state_class=STATE_CLASS_TOTAL_INCREASING,
+    ),
+	"export_energy_a": IamMeterModbusSensorEntityDescription(
+		name="Export Energy",
+		key="export_energy_a",
 		native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
         device_class=DEVICE_CLASS_ENERGY,
         state_class=STATE_CLASS_TOTAL_INCREASING,
