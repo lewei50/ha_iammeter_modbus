@@ -8,5 +8,10 @@
   "dependencies": [],
   "codeowners": ["@lewei50"],
   "config_flow": true,
+  "ssdp": [{
+    "st": "upnp:rootdevice",
+    "manufacturer": "IAMMETER",
+    "deviceType": "urn:schemas-micasaverde-com:service:EnergyMetering:1"
+  }],
   "iot_class": "local_polling"
 }
