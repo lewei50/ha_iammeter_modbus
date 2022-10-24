@@ -43,7 +43,7 @@ Supports:
 It is configurable through config flow, meaning it will popup a dialog after adding the integration.
 
 1. Head to Settings --> Devices & Services--> ADD INTEGRATION
-2. Add new and search for `iammeter`
+2. Add new and search for `iammeter_modbus`
 3. Enter a name for your meter. It suggests "IamMeter" by default, but if you plan to read multiple make it a unique name.
 4. Enter a IP to the IamMeter module. For example: "192.168.2.15" .
 5. SUBMIT --> FINISH.
