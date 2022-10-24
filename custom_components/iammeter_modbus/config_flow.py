@@ -69,12 +69,12 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         dev_sn = friendly_name[-8:]
         self.host = host
         self.discovered_conf = {
-            CONF_NAME: friendly_name,
+            CONF_NAME: friendly_name + "_MB",
             CONF_HOST: host,
         }
         # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
         self.context["title_placeholders"] = self.discovered_conf
-        if self._host_in_configuration_exists(friendly_name):
+        if self._host_in_configuration_exists(friendly_name + "_MB"):
             return self.async_abort(reason="already_configured")
 
         # unique_id should be serial for services purpose
