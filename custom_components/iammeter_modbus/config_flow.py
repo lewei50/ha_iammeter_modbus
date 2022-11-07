@@ -106,6 +106,8 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input = {}
                 user_input[CONF_NAME] = self.discovered_conf[CONF_NAME]
                 user_input[CONF_HOST] = self.discovered_conf[CONF_HOST]
+        else:
+            user_input= {}
 
         return self.async_show_form(
             step_id="user",
