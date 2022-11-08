@@ -78,7 +78,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="already_configured")
 
         # unique_id should be serial for services purpose
-        await self.async_set_unique_id(dev_sn, raise_on_progress=False)
+        await self.async_set_unique_id(dev_sn + "_MB", raise_on_progress=False)
 
         # Check if already configured
         self._abort_if_unique_id_configured()
@@ -91,13 +91,14 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             host = user_input[CONF_HOST]
+            name = user_input[CONF_NAME]
 
-            if self._host_in_configuration_exists(host):
-                errors[CONF_HOST] = "already_configured"
-            elif not host_valid(user_input[CONF_HOST]):
+            if self._host_in_configuration_exists(name):
+                errors[CONF_NAME] = "already_configured"
+            elif not host_valid(host):
                 errors[CONF_HOST] = "invalid host IP"
             else:
-                await self.async_set_unique_id(user_input[CONF_HOST])
+                await self.async_set_unique_id(name + "_MB")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
