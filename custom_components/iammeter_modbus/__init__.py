@@ -186,7 +186,7 @@ class IammeterModbusHub:
             return False
 
         decoder = BinaryPayloadDecoder.fromRegisters(
-            inverter_data.registers, byteorder=Endian.Big
+            inverter_data.registers, byteorder=Endian.BIG
         )
 
         if self._type == TYPE_3080:
