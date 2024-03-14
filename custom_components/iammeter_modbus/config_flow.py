@@ -46,7 +46,7 @@ def host_valid(host):
 def iammeter_modbus_entries(hass: HomeAssistant):
     """Return the hosts already configured."""
     return set(
-        entry.data[CONF_HOST] for entry in hass.config_entries.async_entries(DOMAIN)
+        entry.data[CONF_NAME] for entry in hass.config_entries.async_entries(DOMAIN)
     )
 
 
@@ -55,6 +55,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    _serial_number = ""
 
     def _host_in_configuration_exists(self, host) -> bool:
         """Return True if host exists in configuration."""
@@ -66,8 +67,8 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a discovered Heos device."""
         friendly_name = discovery_info.upnp[ssdp.ATTR_UPNP_FRIENDLY_NAME]
         host = urlparse(discovery_info.ssdp_location).hostname
-        dev_sn = friendly_name[-8:]
         self.host = host
+        self._serial_number = friendly_name[-8:]
         self.discovered_conf = {
             CONF_NAME: friendly_name + "_MB",
             CONF_HOST: host,
@@ -78,7 +79,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="already_configured")
 
         # unique_id should be serial for services purpose
-        await self.async_set_unique_id(dev_sn + "_MB", raise_on_progress=False)
+        await self.async_set_unique_id(self._serial_number + "_MB", raise_on_progress=False)
 
         # Check if already configured
         self._abort_if_unique_id_configured()
@@ -98,7 +99,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             elif not host_valid(host):
                 errors[CONF_HOST] = "invalid host IP"
             else:
-                await self.async_set_unique_id(name + "_MB")
+                await self.async_set_unique_id(self._serial_number + "_MB")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
