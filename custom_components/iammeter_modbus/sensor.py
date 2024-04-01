@@ -1,22 +1,25 @@
 from homeassistant.const import CONF_NAME, CONF_TYPE
-from homeassistant.core import callback
 from homeassistant.components.sensor import SensorEntity
 import logging
 from typing import Optional, Dict, Any
 
-
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+)
 import homeassistant.util.dt as dt_util
+from . import IamMeterModbusData
 
 from .const import ATTR_MANUFACTURER, DOMAIN, SENSOR_TYPES, SENSOR_TYPES_3080, TYPE_3080, TYPE_3080T, IamMeterModbusSensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
 
+
 async def async_setup_entry(hass, entry, async_add_entities):
     hub_name = entry.data[CONF_NAME]
     hub = hass.data[DOMAIN][hub_name]["hub"]
     device_type = entry.data[CONF_TYPE]
-
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     device_info = {
         "identifiers": {(DOMAIN, hub_name)},
         "name": hub_name,
@@ -27,6 +30,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if device_type == TYPE_3080T:
         for sensor_description in SENSOR_TYPES.values():
             sensor = IamMeterModbusSensor(
+                coordinator,
                 hub_name,
                 hub,
                 device_info,
@@ -36,6 +40,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     elif device_type == TYPE_3080:
         for sensor_description in SENSOR_TYPES_3080.values():
             sensor = IamMeterModbusSensor(
+                coordinator,
                 hub_name,
                 hub,
                 device_info,
@@ -47,37 +52,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
     return True
 
 
-class IamMeterModbusSensor(SensorEntity):
+class IamMeterModbusSensor(CoordinatorEntity, SensorEntity):
     """Representation of an IamMeter Modbus sensor."""
 
     def __init__(
         self,
+        coordinator:IamMeterModbusData,
         platform_name,
         hub,
         device_info,
         description: IamMeterModbusSensorEntityDescription,
     ):
         """Initialize the sensor."""
+        super().__init__(coordinator)
         self._platform_name = platform_name
         self._attr_device_info = device_info
         self._hub = hub
         self.entity_description: IamMeterModbusSensorEntityDescription = description
-
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        self._hub.async_add_iammeter_modbus_sensor(self._modbus_data_updated)
-
-    async def async_will_remove_from_hass(self) -> None:
-        self._hub.async_remove_iammeter_modbus_sensor(self._modbus_data_updated)
-
-    @callback
-    def _modbus_data_updated(self):
-        self.async_write_ha_state()
-
-    @callback
-    def _update_state(self):
-        if self._key in self._hub.data:
-            self._state = self._hub.data[self._key]
 
     @property
     def name(self):
@@ -91,8 +82,9 @@ class IamMeterModbusSensor(SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return (
-        	self._hub.data[self.entity_description.key]
-        	if self.entity_description.key in self._hub.data
-        	else None
-        )
+        if(self.coordinator.data):
+            return (
+                self.coordinator.data.get(
+                    self.entity_description.key, None
+                )
+            )

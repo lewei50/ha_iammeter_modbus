@@ -2,15 +2,20 @@
 import asyncio
 import logging
 import threading
+import async_timeout
 from datetime import timedelta
 from typing import Optional
+from requests.exceptions import Timeout
 
+from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL, CONF_TYPE
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException
@@ -44,6 +49,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 PLATFORMS = ["sensor"]
+SCAN_INTERVAL = timedelta(seconds=4)
 
 
 async def async_setup(hass, config):
@@ -53,6 +59,7 @@ async def async_setup(hass, config):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    _LOGGER.info("async_setup_entry")
     """Set up a IamMeter mobus."""
     host = entry.data[CONF_HOST]
     type = entry.data[CONF_TYPE]
@@ -65,6 +72,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hub = IammeterModbusHub(hass, name, host, port, scan_interval, type)
     """Register the hub."""
     hass.data[DOMAIN][name] = {"hub": hub}
+    
+    coordinator = IamMeterModbusData(hass, hub)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    await coordinator.async_config_entry_first_refresh()
 
     for component in PLATFORMS:
         hass.async_create_task(
@@ -85,9 +96,27 @@ async def async_unload_entry(hass, entry):
     if not unload_ok:
         return False
 
-    hass.data[DOMAIN].pop(entry.data["name"])
+    hass.data[DOMAIN].pop(entry.data[CONF_NAME])
     return True
 
+class IamMeterModbusData(DataUpdateCoordinator):
+    """My custom coordinator."""
+
+    def __init__(self, hass, my_api):
+        """Initialize my coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name="IamMeterModbus Data",
+            # Polling interval. Will only be polled if there are subscribers.
+            update_interval=timedelta(seconds=3),
+        )
+        self.my_api = my_api
+
+    async def _async_update_data(self):
+        #Fetch data from API endpoint.
+        return await self.my_api.async_refresh_modbus_data()
 
 class IammeterModbusHub:
     """Thread safe wrapper class for pymodbus."""
@@ -103,7 +132,7 @@ class IammeterModbusHub:
     ):
         """Initialize the Modbus hub."""
         self._hass = hass
-        self._client = ModbusTcpClient(host=host, port=port, timeout=5)
+        self._client = ModbusTcpClient(host=host, port=port, timeout=2)
         self._lock = threading.Lock()
         self._name = name
         self._type = type
@@ -112,39 +141,17 @@ class IammeterModbusHub:
         self._sensors = []
         self.data = {}
 
-    @callback
-    def async_add_iammeter_modbus_sensor(self, update_callback):
-        """Listen for data updates."""
-        # This is the first sensor, set up interval.
-        if not self._sensors:
-            self.connect()
-            self._unsub_interval_method = async_track_time_interval(
-                self._hass, self.async_refresh_modbus_data, self._scan_interval
-            )
-
-        self._sensors.append(update_callback)
-
-    @callback
-    def async_remove_iammeter_modbus_sensor(self, update_callback):
-        """Remove data update."""
-        self._sensors.remove(update_callback)
-
-        if not self._sensors:
-            """stop the interval timer upon removal of last sensor"""
-            self._unsub_interval_method()
-            self._unsub_interval_method = None
-            self.close()
-
-    async def async_refresh_modbus_data(self, _now: Optional[int] = None) -> None:
+    async def async_refresh_modbus_data(self, _now: Optional[int] = None):
         """Time to update."""
-        if not self._sensors:
-            return
-
-        update_result = self.read_modbus_data()
-
-        if update_result:
-            for update_callback in self._sensors:
-                update_callback()
+        self.connect()
+        
+        try:
+            async with async_timeout.timeout(2):
+                update_result = self.read_modbus_data()
+                if update_result:
+                    return self.data
+        except (OSError, Timeout) as err:
+            raise UpdateFailed(f"Error communicating with API: {err}")
 
     @property
     def name(self):
@@ -159,7 +166,8 @@ class IammeterModbusHub:
     def connect(self):
         """Connect client."""
         with self._lock:
-            self._client.connect()
+            if self._client.connected is None:
+                self._client.connect()
 
     def read_holding_registers(self, unit, address, count):
         """Read holding registers."""
@@ -168,13 +176,11 @@ class IammeterModbusHub:
             return self._client.read_holding_registers(address, count, **kwargs)
 
     def read_modbus_data(self):
-
         try:
             return self.read_modbus_holding_registers()
         except ConnectionException as ex:
             _LOGGER.error("Reading data failed! IamMeter is offline.")
-
-            return True
+            raise UpdateFailed(f"Error communicating with API: {ex}")
 
     def read_modbus_holding_registers(self):
         typeCount = 38
