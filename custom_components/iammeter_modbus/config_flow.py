@@ -60,15 +60,21 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _host_in_configuration_exists(self, host) -> bool:
         """Return True if host exists in configuration."""
         if host in iammeter_modbus_entries(self.hass):
+            print("already_configured")
             return True
         return False
 
     async def async_step_ssdp(self, discovery_info):
         """Handle a discovered Heos device."""
+        print("ssdp")
         friendly_name = discovery_info.upnp[ssdp.ATTR_UPNP_FRIENDLY_NAME]
         host = urlparse(discovery_info.ssdp_location).hostname
         self.host = host
-        self._serial_number = friendly_name[-8:]
+        x = re.search("_(\w*)$",friendly_name)
+        if(x):
+            self._serial_number = x.group(1)
+        else:
+            self._serial_number = friendly_name
         self.discovered_conf = {
             CONF_NAME: friendly_name + "_MB",
             CONF_HOST: host,
@@ -88,11 +94,14 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
+        print("step_user")
         errors = {}
 
         if user_input is not None:
             host = user_input[CONF_HOST]
             name = user_input[CONF_NAME]
+            if(self._serial_number == ""):
+                self._serial_number = name
 
             if self._host_in_configuration_exists(name):
                 errors[CONF_NAME] = "already_configured"
