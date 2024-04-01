@@ -166,7 +166,7 @@ class IammeterModbusHub:
     def connect(self):
         """Connect client."""
         with self._lock:
-            if self._client.connected is not None:
+            if self._client.connected is None:
                 self._client.connect()
 
     def read_holding_registers(self, unit, address, count):
