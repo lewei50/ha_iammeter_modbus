@@ -31,6 +31,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_LOGGER_MODBUS_LIB = logging.getLogger("pymodbus.logging")
+_LOGGER_MODBUS_LIB.setLevel(logging.CRITICAL)
 
 IAMMETER_MODBUS_SCHEMA = vol.Schema(
     {
@@ -179,7 +181,7 @@ class IammeterModbusHub:
         try:
             return self.read_modbus_holding_registers()
         except ConnectionException as ex:
-            _LOGGER.error("Reading data failed! IamMeter is offline.")
+            #_LOGGER.error("Reading data failed! IamMeter is offline.")
             raise UpdateFailed(f"Error communicating with API: {ex}")
 
     def read_modbus_holding_registers(self):
