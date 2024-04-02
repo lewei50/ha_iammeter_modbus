@@ -70,7 +70,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         friendly_name = discovery_info.upnp[ssdp.ATTR_UPNP_FRIENDLY_NAME]
         host = urlparse(discovery_info.ssdp_location).hostname
         self.host = host
-        x = re.search("_(\w*)$",friendly_name)
+        x = re.search("_(\\w*)$",friendly_name)
         if(x):
             self._serial_number = x.group(1)
         else:
