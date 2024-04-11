@@ -83,7 +83,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context["title_placeholders"] = self.discovered_conf
         if self._host_in_configuration_exists(friendly_name + "_MB"):
             return self.async_abort(reason="already_configured")
-	if self._async_in_progress():
+        if self._async_in_progress():
             return self.async_abort(reason="single_instance_allowed")
 
         # unique_id should be serial for services purpose
