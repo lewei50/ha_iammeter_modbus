@@ -135,6 +135,7 @@ class IammeterModbusHub:
         """Initialize the Modbus hub."""
         self._hass = hass
         self._client = ModbusTcpClient(host=host, port=port, timeout=2)
+        self._value_attr_name = "count"
         self._lock = threading.Lock()
         self._name = name
         self._type = type
@@ -175,8 +176,10 @@ class IammeterModbusHub:
         """Read holding registers."""
         with self._lock:
             kwargs = {"slave": unit} if unit else {}
-            return self._client.read_holding_registers(address, count, **kwargs)
-
+            # return self._client.read_holding_registers(address, count, **kwargs)
+            kwargs[self._value_attr_name] = count
+            return self._client.read_holding_registers(address, **kwargs)
+        
     def read_modbus_data(self):
         try:
             return self.read_modbus_holding_registers()
