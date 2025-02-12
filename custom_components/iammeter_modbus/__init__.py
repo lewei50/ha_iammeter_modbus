@@ -150,8 +150,18 @@ class IammeterModbusHub:
                 update_result = self.read_modbus_data()
                 if update_result:
                     return self.data
-        except (OSError, Timeout) as err:
-            raise UpdateFailed(f"Error communicating with API: {err}")
+        except (OSError, Timeout, ConnectionException) as err:
+            _LOGGER.error(f"Error communicating with API: {err}")
+            self.close()
+            await asyncio.sleep(5)  # Wait 5 seconds and try again
+            self.connect()
+            try:
+                async with async_timeout.timeout(2):
+                    update_result = self.read_modbus_data()
+                    if update_result:
+                        return self.data
+            except (OSError, Timeout, ConnectionException) as err:
+                raise UpdateFailed(f"Error communicating with API after retry: {err}")
 
     @property
     def name(self):
@@ -166,7 +176,7 @@ class IammeterModbusHub:
     def connect(self):
         """Connect client."""
         with self._lock:
-            if self._client.connected is None:
+            if not self._client.connected:
                 self._client.connect()
 
     def read_holding_registers(self, unit, address, count):
