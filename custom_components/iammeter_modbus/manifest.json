@@ -1,12 +1,12 @@
 {
+  "domain": "iammeter_modbus",
+  "name": "IamMeter Modbus",
   "codeowners": ["@lewei50"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/lewei50/ha_iammeter_modbus",
-  "domain": "iammeter_modbus",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/lewei50/ha_iammeter_modbus/issues",
-  "name": "IamMeter Modbus",
   "requirements": ["pymodbus>=3.6.6"],
   "ssdp": [{
     "deviceType": "urn:schemas-micasaverde-com:service:EnergyMetering:1",
