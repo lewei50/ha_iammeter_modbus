@@ -17,9 +17,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from pymodbus.client import ModbusTcpClient
-from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException
-from pymodbus.payload import BinaryPayloadDecoder
 
 from .const import (
     DEFAULT_NAME,
@@ -42,7 +40,7 @@ IAMMETER_MODBUS_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
         ): cv.positive_int,
-        vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080, TYPE_3080T]),
+        vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In([TYPE_3080, TYPE_3080T]),
     }
 )
 
@@ -74,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hub = IammeterModbusHub(hass, name, host, port, scan_interval, type)
     """Register the hub."""
     hass.data[DOMAIN][name] = {"hub": hub}
-    
+
     coordinator = IamMeterModbusData(hass, hub)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await coordinator.async_config_entry_first_refresh()
@@ -82,12 +80,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
+
 async def async_unload_entry(hass, entry):
     """Unload IamMeter mobus entry."""
     unload_ok = all(
         await asyncio.gather(
             *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
+                hass.config_entries.async_forward_entry_unload(
+                    entry, component)
                 for component in PLATFORMS
             ]
         )
@@ -97,6 +97,7 @@ async def async_unload_entry(hass, entry):
 
     hass.data[DOMAIN].pop(entry.data[CONF_NAME])
     return True
+
 
 class IamMeterModbusData(DataUpdateCoordinator):
     """My custom coordinator."""
@@ -114,8 +115,9 @@ class IamMeterModbusData(DataUpdateCoordinator):
         self.my_api = my_api
 
     async def _async_update_data(self):
-        #Fetch data from API endpoint.
+        # Fetch data from API endpoint.
         return await self.my_api.async_refresh_modbus_data()
+
 
 class IammeterModbusHub:
     """Thread safe wrapper class for pymodbus."""
@@ -144,7 +146,7 @@ class IammeterModbusHub:
     async def async_refresh_modbus_data(self, _now: Optional[int] = None):
         """Time to update."""
         self.connect()
-        
+
         try:
             async with async_timeout.timeout(2):
                 update_result = self.read_modbus_data()
@@ -161,7 +163,8 @@ class IammeterModbusHub:
                     if update_result:
                         return self.data
             except (OSError, Timeout, ConnectionException) as err:
-                raise UpdateFailed(f"Error communicating with API after retry: {err}")
+                raise UpdateFailed(
+                    f"Error communicating with API after retry: {err}")
 
     @property
     def name(self):
@@ -179,124 +182,154 @@ class IammeterModbusHub:
             if not self._client.connected:
                 self._client.connect()
 
-    def read_holding_registers(self, unit, address, count):
-        """Read holding registers."""
-        with self._lock:
-            kwargs = {"slave": unit} if unit else {}
-            # return self._client.read_holding_registers(address, count, **kwargs)
-            kwargs[self._value_attr_name] = count
-            return self._client.read_holding_registers(address, **kwargs)
-        
     def read_modbus_data(self):
         try:
             return self.read_modbus_holding_registers()
         except ConnectionException as ex:
-            #_LOGGER.error("Reading data failed! IamMeter is offline.")
             raise UpdateFailed(f"Error communicating with API: {ex}")
 
     def read_modbus_holding_registers(self):
+        """Read modbus holding registers with error handling and modern API."""
         typeCount = 38
         if self._type == TYPE_3080:
             typeCount = 8
-        inverter_data = self.read_holding_registers(unit=1, address=0x0, count=typeCount)
 
-        if inverter_data.isError():
+        # Add thread lock and handle different pymodbus versions
+        with self._lock:
+            try:
+                # Try new API first (pymodbus >= 3.10.0)
+                resp = self._client.read_holding_registers(
+                    address=0x0,
+                    count=typeCount,
+                    device_id=1
+                )
+            except TypeError:
+                # Fallback to old API (pymodbus < 3.10.0)
+                resp = self._client.read_holding_registers(
+                    address=0x0,
+                    count=typeCount,
+                    slave=1
+                )
+
+        if resp.isError():
+            _LOGGER.error(f"Modbus read error: {resp}")
             return False
 
-        decoder = BinaryPayloadDecoder.fromRegisters(
-            inverter_data.registers, byteorder=Endian.BIG
-        )
+        regs = resp.registers
+
+        def u16(i):
+            """Read 16-bit unsigned integer"""
+            return self._client.convert_from_registers(
+                [regs[i]],
+                self._client.DATATYPE.UINT16,
+                word_order="big",
+            )
+
+        def s32(i):
+            """Read 32-bit signed integer"""
+            return self._client.convert_from_registers(
+                regs[i:i+2],
+                self._client.DATATYPE.INT32,
+                word_order="big",
+            )
+
+        def u32(i):
+            """Read 32-bit unsigned integer"""
+            return self._client.convert_from_registers(
+                regs[i:i+2],
+                self._client.DATATYPE.UINT32,
+                word_order="big",
+            )
 
         if self._type == TYPE_3080:
-            voltage_a = decoder.decode_16bit_uint()
+            voltage_a = u16(0)
             self.data["voltage_a"] = round(voltage_a * 0.01, 1)
 
-            current_a = decoder.decode_16bit_uint()
+            current_a = u16(1)
             self.data["current_a"] = round(current_a * 0.01, 1)
 
-            power_a = decoder.decode_32bit_int()
+            power_a = s32(2)                # 2~3
             self.data["power_a"] = power_a
 
-            import_energy_a = decoder.decode_32bit_uint()
-            self.data["import_energy_a"] = round(import_energy_a * 0.0003125, 3)
+            import_energy_a = u32(4)        # 4~5
+            self.data["import_energy_a"] = round(
+                import_energy_a * 0.0003125, 3)
 
-            export_energy_a = decoder.decode_32bit_uint()
-            self.data["export_energy_a"] = round(export_energy_a * 0.0003125, 3)
-
+            export_energy_a = u32(6)        # 6~7
+            self.data["export_energy_a"] = round(
+                export_energy_a * 0.0003125, 3)
             return True
         else:
-            voltage_a = decoder.decode_16bit_uint()
+            voltage_a = u16(0)
             self.data["voltage_a"] = round(voltage_a * 0.01, 1)
 
-            current_a = decoder.decode_16bit_uint()
+            current_a = u16(1)
             self.data["current_a"] = round(current_a * 0.01, 1)
 
-            power_a = decoder.decode_32bit_int()
+            power_a = s32(2)                    # 2~3
             self.data["power_a"] = power_a
 
-            import_energy_a = decoder.decode_32bit_uint()
+            import_energy_a = u32(4)            # 4~5
             self.data["import_energy_a"] = round(import_energy_a * 0.00125, 2)
 
-            export_energy_a = decoder.decode_32bit_uint()
+            export_energy_a = u32(6)            # 6~7
             self.data["export_energy_a"] = round(export_energy_a * 0.00125, 2)
 
-            power_factor_a = decoder.decode_16bit_uint()
+            power_factor_a = u16(8)             # 8
             self.data["power_factor_a"] = round(power_factor_a * 0.001, 2)
 
-            decoder.skip_bytes(2)
-
-            voltage_b = decoder.decode_16bit_uint()
+            # Skip register 9
+            voltage_b = u16(10)
             self.data["voltage_b"] = round(voltage_b * 0.01, 1)
 
-            current_b = decoder.decode_16bit_uint()
+            current_b = u16(11)
             self.data["current_b"] = round(current_b * 0.01, 1)
 
-            power_b = decoder.decode_32bit_int()
+            power_b = s32(12)                   # 12~13
             self.data["power_b"] = power_b
 
-            import_energy_b = decoder.decode_32bit_uint()
+            import_energy_b = u32(14)           # 14~15
             self.data["import_energy_b"] = round(import_energy_b * 0.00125, 2)
 
-            export_energy_b = decoder.decode_32bit_uint()
+            export_energy_b = u32(16)           # 16~17
             self.data["export_energy_b"] = round(export_energy_b * 0.00125, 2)
 
-            power_factor_b = decoder.decode_16bit_uint()
+            power_factor_b = u16(18)            # 18
             self.data["power_factor_b"] = round(power_factor_b * 0.001, 2)
 
-            decoder.skip_bytes(2)
-
-            voltage_c = decoder.decode_16bit_uint()
+            # Skip register 19
+            voltage_c = u16(20)
             self.data["voltage_c"] = round(voltage_c * 0.01, 1)
 
-            current_c = decoder.decode_16bit_uint()
+            current_c = u16(21)
             self.data["current_c"] = round(current_c * 0.01, 1)
 
-            power_c = decoder.decode_32bit_int()
+            power_c = s32(22)                   # 22~23
             self.data["power_c"] = power_c
 
-            import_energy_c = decoder.decode_32bit_uint()
+            import_energy_c = u32(24)           # 24~25
             self.data["import_energy_c"] = round(import_energy_c * 0.00125, 2)
 
-            export_energy_c = decoder.decode_32bit_uint()
+            export_energy_c = u32(26)           # 26~27
             self.data["export_energy_c"] = round(export_energy_c * 0.00125, 2)
 
-            power_factor_c = decoder.decode_16bit_uint()
+            power_factor_c = u16(28)            # 28
             self.data["power_factor_c"] = round(power_factor_c * 0.001, 2)
 
-            decoder.skip_bytes(2)
-
-            frequency = decoder.decode_16bit_uint()
+            # Skip register 29
+            frequency = u16(30)
             self.data["frequency"] = round(frequency * 0.01, 1)
 
-            decoder.skip_bytes(2)
-
-            total_power = decoder.decode_32bit_int()
+            # Skip register 31
+            total_power = s32(32)               # 32~33
             self.data["total_power"] = total_power
 
-            total_import_energy = decoder.decode_32bit_uint()
-            self.data["total_import_energy"] = round(total_import_energy * 0.00125, 2)
+            total_import_energy = u32(34)       # 34~35
+            self.data["total_import_energy"] = round(
+                total_import_energy * 0.00125, 2)
 
-            total_export_energy = decoder.decode_32bit_uint()
-            self.data["total_export_energy"] = round(total_export_energy * 0.00125, 2)
+            total_export_energy = u32(36)       # 36~37
+            self.data["total_export_energy"] = round(
+                total_export_energy * 0.00125, 2)
 
             return True

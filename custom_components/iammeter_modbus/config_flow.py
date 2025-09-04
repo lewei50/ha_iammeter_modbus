@@ -5,7 +5,7 @@ import re
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.components import ssdp
+from homeassistant.helpers.service_info.ssdp import ATTR_UPNP_FRIENDLY_NAME
 from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PORT,
                                  CONF_SCAN_INTERVAL, CONF_TYPE)
 from homeassistant.core import HomeAssistant, callback
@@ -67,7 +67,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_ssdp(self, discovery_info):
         """Handle a discovered Heos device."""
         print("ssdp")
-        friendly_name = discovery_info.upnp[ssdp.ATTR_UPNP_FRIENDLY_NAME]
+        friendly_name = discovery_info.upnp.get(ATTR_UPNP_FRIENDLY_NAME)
         host = urlparse(discovery_info.ssdp_location).hostname
         self.host = host
         x = re.search("_(\\w*)$",friendly_name)
