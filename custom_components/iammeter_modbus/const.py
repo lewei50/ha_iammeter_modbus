@@ -178,6 +178,70 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
+	"reactive_power_a": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power A",
+		key="reactive_power_a",
+		native_unit_of_measurement="var",
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"reactive_power_b": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power B",
+		key="reactive_power_b",
+		native_unit_of_measurement="var",
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"reactive_power_c": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power C",
+		key="reactive_power_c",
+		native_unit_of_measurement="var",
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"inductive_kvarh_a": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH A",
+		key="inductive_kvarh_a",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_a": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH A",
+		key="capacitive_kvarh_a",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"inductive_kvarh_b": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH B",
+		key="inductive_kvarh_b",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_b": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH B",
+		key="capacitive_kvarh_b",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"inductive_kvarh_c": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH C",
+		key="inductive_kvarh_c",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_c": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH C",
+		key="capacitive_kvarh_c",
+		native_unit_of_measurement="kvarh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"runtime": IamMeterModbusSensorEntityDescription(
+		name="Runtime",
+		key="runtime",
+		native_unit_of_measurement="s",
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
 }
 
 SENSOR_TYPES_3080: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
