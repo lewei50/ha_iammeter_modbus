@@ -337,28 +337,28 @@ class IammeterModbusHub:
             self.data["reactive_power_a"] = reactive_power_a
 
             inductive_kvarh_a = u32(40)          # 40~41
-            self.data["inductive_kvarh_a"] = round(inductive_kvarh_a / 800, 3)
+            self.data["inductive_kvarh_a"] = round(inductive_kvarh_a / 1000, 3)
 
             capacitive_kvarh_a = u32(42)         # 42~43
-            self.data["capacitive_kvarh_a"] = round(capacitive_kvarh_a / 800, 3)
+            self.data["capacitive_kvarh_a"] = round(capacitive_kvarh_a / 1000, 3)
 
             reactive_power_b = s32(44)           # 44~45
             self.data["reactive_power_b"] = reactive_power_b
 
             inductive_kvarh_b = u32(46)          # 46~47
-            self.data["inductive_kvarh_b"] = round(inductive_kvarh_b / 800, 3)
+            self.data["inductive_kvarh_b"] = round(inductive_kvarh_b / 1000, 3)
 
             capacitive_kvarh_b = u32(48)         # 48~49
-            self.data["capacitive_kvarh_b"] = round(capacitive_kvarh_b / 800, 3)
+            self.data["capacitive_kvarh_b"] = round(capacitive_kvarh_b / 1000, 3)
 
             reactive_power_c = s32(50)           # 50~51
             self.data["reactive_power_c"] = reactive_power_c
 
             inductive_kvarh_c = u32(52)          # 52~53
-            self.data["inductive_kvarh_c"] = round(inductive_kvarh_c / 800, 3)
+            self.data["inductive_kvarh_c"] = round(inductive_kvarh_c / 1000, 3)
 
             capacitive_kvarh_c = u32(54)         # 54~55
-            self.data["capacitive_kvarh_c"] = round(capacitive_kvarh_c / 800, 3)
+            self.data["capacitive_kvarh_c"] = round(capacitive_kvarh_c / 1000, 3)
 
             # Runtime at address 64
             runtime = u32(64)                    # 64~65
