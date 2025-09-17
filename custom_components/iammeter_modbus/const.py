@@ -13,6 +13,9 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfFrequency,
     UnitOfPower,
+    UnitOfReactivePower,
+	UnitOfReactiveEnergy,
+    UnitOfTime,
 )
 
 TYPE_3080 = "WEM3080"
@@ -36,12 +39,14 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
     	key="voltage_a",
     	native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 	"current_a": IamMeterModbusSensorEntityDescription(
 		name="Current A",
 		key="current_a",
 		native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"power_a": IamMeterModbusSensorEntityDescription(
     	name="Power A",
@@ -67,21 +72,23 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 	"power_factor_a": IamMeterModbusSensorEntityDescription(
 		name="Power Factor A",
 		key="power_factor_a",
-    	native_unit_of_measurement=PERCENTAGE,
-		
+    	native_unit_of_measurement=None,
         device_class=SensorDeviceClass.POWER_FACTOR,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"voltage_b": IamMeterModbusSensorEntityDescription(
     	name="Voltage B",
     	key="voltage_b",
     	native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 	"current_b": IamMeterModbusSensorEntityDescription(
 		name="Current B",
 		key="current_b",
 		native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"power_b": IamMeterModbusSensorEntityDescription(
     	name="Power B",
@@ -107,9 +114,9 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 	"power_factor_b": IamMeterModbusSensorEntityDescription(
 		name="Power Factor B",
 		key="power_factor_b",
-    	native_unit_of_measurement=PERCENTAGE,
-		
+    	native_unit_of_measurement=None,
         device_class=SensorDeviceClass.POWER_FACTOR,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 
 	"voltage_c": IamMeterModbusSensorEntityDescription(
@@ -117,12 +124,14 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
     	key="voltage_c",
     	native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 	"current_c": IamMeterModbusSensorEntityDescription(
 		name="Current C",
 		key="current_c",
 		native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"power_c": IamMeterModbusSensorEntityDescription(
     	name="Power C",
@@ -148,14 +157,16 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 	"power_factor_c": IamMeterModbusSensorEntityDescription(
 		name="Power Factor C",
 		key="power_factor_c",
-    	native_unit_of_measurement=PERCENTAGE,
-		
+    	native_unit_of_measurement=None,
         device_class=SensorDeviceClass.POWER_FACTOR,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"frequency": IamMeterModbusSensorEntityDescription(
     	name="Frequency",
     	key="frequency",
     	native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.FREQUENCY,
     ),
 	"total_power": IamMeterModbusSensorEntityDescription(
     	name="Total Power",
@@ -178,6 +189,76 @@ SENSOR_TYPES: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
+	"reactive_power_a": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power A",
+		key="reactive_power_a",
+		native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"reactive_power_b": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power B",
+		key="reactive_power_b",
+		native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"reactive_power_c": IamMeterModbusSensorEntityDescription(
+		name="Reactive Power C",
+		key="reactive_power_c",
+		native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
+        device_class=SensorDeviceClass.REACTIVE_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+	"inductive_kvarh_a": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH A",
+		key="inductive_kvarh_a",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_a": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH A",
+		key="capacitive_kvarh_a",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"inductive_kvarh_b": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH B",
+		key="inductive_kvarh_b",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_b": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH B",
+		key="capacitive_kvarh_b",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"inductive_kvarh_c": IamMeterModbusSensorEntityDescription(
+		name="Inductive KVARH C",
+		key="inductive_kvarh_c",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"capacitive_kvarh_c": IamMeterModbusSensorEntityDescription(
+		name="Capacitive KVARH C",
+		key="capacitive_kvarh_c",
+		native_unit_of_measurement=UnitOfReactiveEnergy.KILO_VOLT_AMPERE_REACTIVE_HOUR,
+        device_class=SensorDeviceClass.REACTIVE_ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+	"runtime": IamMeterModbusSensorEntityDescription(
+		name="Runtime",
+		key="runtime",
+		native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
 }
 
 SENSOR_TYPES_3080: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
@@ -186,12 +267,14 @@ SENSOR_TYPES_3080: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
     	key="voltage_a",
     	native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 	"current_a": IamMeterModbusSensorEntityDescription(
 		name="Current",
 		key="current_a",
 		native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
 	),
 	"power_a": IamMeterModbusSensorEntityDescription(
     	name="Power",

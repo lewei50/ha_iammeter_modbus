@@ -190,7 +190,7 @@ class IammeterModbusHub:
 
     def read_modbus_holding_registers(self):
         """Read modbus holding registers with error handling and modern API."""
-        typeCount = 38
+        typeCount = 66  # Extended to include all registers up to runtime at 64-65
         if self._type == TYPE_3080:
             typeCount = 8
 
@@ -331,5 +331,37 @@ class IammeterModbusHub:
             total_export_energy = u32(36)       # 36~37
             self.data["total_export_energy"] = round(
                 total_export_energy * 0.00125, 2)
+
+            # Reactive power readings
+            reactive_power_a = s32(38)           # 38~39
+            self.data["reactive_power_a"] = reactive_power_a
+
+            inductive_kvarh_a = u32(40)          # 40~41
+            self.data["inductive_kvarh_a"] = round(inductive_kvarh_a / 1000, 3)
+
+            capacitive_kvarh_a = u32(42)         # 42~43
+            self.data["capacitive_kvarh_a"] = round(capacitive_kvarh_a / 1000, 3)
+
+            reactive_power_b = s32(44)           # 44~45
+            self.data["reactive_power_b"] = reactive_power_b
+
+            inductive_kvarh_b = u32(46)          # 46~47
+            self.data["inductive_kvarh_b"] = round(inductive_kvarh_b / 1000, 3)
+
+            capacitive_kvarh_b = u32(48)         # 48~49
+            self.data["capacitive_kvarh_b"] = round(capacitive_kvarh_b / 1000, 3)
+
+            reactive_power_c = s32(50)           # 50~51
+            self.data["reactive_power_c"] = reactive_power_c
+
+            inductive_kvarh_c = u32(52)          # 52~53
+            self.data["inductive_kvarh_c"] = round(inductive_kvarh_c / 1000, 3)
+
+            capacitive_kvarh_c = u32(54)         # 54~55
+            self.data["capacitive_kvarh_c"] = round(capacitive_kvarh_c / 1000, 3)
+
+            # Runtime at address 64
+            runtime = u32(64)                    # 64~65
+            self.data["runtime"] = runtime
 
             return True
