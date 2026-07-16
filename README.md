@@ -1,15 +1,15 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 
-This fork from [wills106](https://github.com/wills106/homeassistant-iammeter-modbus)
-Added single-phase meter and device auto-discovery.
+This project is forked from [wills106](https://github.com/wills106/homeassistant-iammeter-modbus).
+It adds single-phase meter support and device auto-discovery.
 
-# homsassistant-IamMeter-modbus
-IamMeter Modbus custom_component for Home Assistant
-Support Modbus TCP
+# Home Assistant IAMMETER Modbus TCP
+IAMMETER Modbus TCP custom component for Home Assistant.
 
-Firmware version >= 75.82
+Requires firmware version 75.82 or later.
 
-You can have multiple instances of this Integration, just change the default Prefix from IamMeter to something else. Ie IamMeter Main or IamMeter Garage
+Multiple instances are supported. Give each meter a unique name, such as
+`IAMMETER Main` or `IAMMETER Garage`.
 
 Supports:
 
@@ -42,11 +42,17 @@ Supports:
 
 It is configurable through config flow, meaning it will popup a dialog after adding the integration.
 
-1. Head to Settings --> Devices & Services--> ADD INTEGRATION
-2. Add new and search for `iammeter_modbus`
-3. Enter a name for your meter. It suggests "IamMeter" by default, but if you plan to read multiple make it a unique name.
-4. Enter a IP to the IamMeter module. For example: "192.168.2.15" .
-5. SUBMIT --> FINISH.
+1. Go to **Settings → Devices & Services → Add Integration**.
+2. Search for `iammeter_modbus`.
+3. Enter a unique name for the meter.
+4. Enter the meter IP address, device type and Modbus TCP port (default: `502`).
+5. Set the polling interval in seconds (default: `3`, allowed range: `1–3600`).
+6. Select **Submit → Finish**.
+
+The configured polling interval is used while the meter is online. If the meter
+goes offline, retries automatically back off to 5, 10, 20, 40 and then 60
+seconds, avoiding excessive connection attempts. The configured polling interval
+is restored automatically when the meter comes back online.
 
 ## Sensors
 
@@ -71,7 +77,7 @@ Sensors available in the library:
 | wem3080t_power_a        | W    | A phase active power  |
 | wem3080t_importenergy_a | kWh  | A phase import energy |
 | wem3080t_exportgrid_a   | kWh  | A phase export energy |
-| wem3080t_frequency_a    | Hz   | A phase frequency     |
+| wem3080t_frequency      | Hz   | Frequency             |
 | wem3080t_pf_a           |      | A phase power factor  |
 |                         |      |                       |
 | wem3080t_voltage_b      | V    | B phase voltage       |
@@ -79,7 +85,6 @@ Sensors available in the library:
 | wem3080t_power_b        | W    | B phase active power  |
 | wem3080t_importenergy_b | kWh  | B phase import energy |
 | wem3080t_exportgrid_b   | kWh  | B phase export energy |
-| wem3080t_frequency_b    | Hz   | B phase frequency     |
 | wem3080t_pf_b           |      | B phase power factor  |
 |                         |      |                       |
 | wem3080t_voltage_c      | V    | C phase voltage       |
@@ -87,5 +92,18 @@ Sensors available in the library:
 | wem3080t_power_c        | W    | C phase active power  |
 | wem3080t_importenergy_c | kWh  | C phase import energy |
 | wem3080t_exportgrid_c   | kWh  | C phase export energy |
-| wem3080t_frequency_c    | Hz   | C phase frequency     |
 | wem3080t_pf_c           |      | C phase power factor  |
+|                         |      |                       |
+| wem3080t_total_power    | W    | Total active power    |
+| wem3080t_total_import_energy | kWh | Total import energy |
+| wem3080t_total_export_energy | kWh | Total export energy |
+| wem3080t_reactive_power_a | var | A phase reactive power |
+| wem3080t_inductive_kvarh_a | kvarh | A phase inductive reactive energy |
+| wem3080t_capacitive_kvarh_a | kvarh | A phase capacitive reactive energy |
+| wem3080t_reactive_power_b | var | B phase reactive power |
+| wem3080t_inductive_kvarh_b | kvarh | B phase inductive reactive energy |
+| wem3080t_capacitive_kvarh_b | kvarh | B phase capacitive reactive energy |
+| wem3080t_reactive_power_c | var | C phase reactive power |
+| wem3080t_inductive_kvarh_c | kvarh | C phase inductive reactive energy |
+| wem3080t_capacitive_kvarh_c | kvarh | C phase capacitive reactive energy |
+| wem3080t_runtime        | s    | Meter runtime          |

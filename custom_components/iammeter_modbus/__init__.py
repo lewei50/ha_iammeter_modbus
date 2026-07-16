@@ -1,11 +1,7 @@
 """The Iammeter Modbus Integration."""
 import asyncio
 import logging
-import threading
-import async_timeout
 from datetime import timedelta
-from typing import Optional
-from requests.exceptions import Timeout
 
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
@@ -16,14 +12,18 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
-from pymodbus.client import ModbusTcpClient
-from pymodbus.exceptions import ConnectionException
+from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.exceptions import ConnectionException, ModbusException
 
 from .const import (
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TYPE,
     DOMAIN,
+    MAX_OFFLINE_RETRY_INTERVAL,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    OFFLINE_RETRY_INTERVAL,
     TYPE_3080,
     TYPE_3080T,
 )
@@ -39,7 +39,10 @@ IAMMETER_MODBUS_SCHEMA = vol.Schema(
         vol.Required(CONF_PORT): cv.string,
         vol.Optional(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
-        ): cv.positive_int,
+        ): vol.All(
+            cv.positive_int,
+            vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+        ),
         vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In([TYPE_3080, TYPE_3080T]),
     }
 )
@@ -49,7 +52,6 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 PLATFORMS = ["sensor"]
-SCAN_INTERVAL = timedelta(seconds=4)
 
 
 async def async_setup(hass, config):
@@ -65,17 +67,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     type = entry.data[CONF_TYPE]
     name = entry.data[CONF_NAME]
     port = entry.data[CONF_PORT]
-    scan_interval = entry.data[CONF_SCAN_INTERVAL]
+    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     _LOGGER.debug("Setup %s.%s", DOMAIN, name)
 
-    hub = IammeterModbusHub(hass, name, host, port, scan_interval, type)
-    """Register the hub."""
-    hass.data[DOMAIN][name] = {"hub": hub}
-
-    coordinator = IamMeterModbusData(hass, hub)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    await coordinator.async_config_entry_first_refresh()
+    hub = IammeterModbusHub(name, host, port, type)
+    coordinator = IamMeterModbusData(hass, hub, scan_interval)
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        hub.close()
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        raise
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -95,76 +99,85 @@ async def async_unload_entry(hass, entry):
     if not unload_ok:
         return False
 
-    hass.data[DOMAIN].pop(entry.data[CONF_NAME])
+    coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
+    if coordinator is not None:
+        await coordinator.async_shutdown()
     return True
 
 
 class IamMeterModbusData(DataUpdateCoordinator):
-    """My custom coordinator."""
+    """Coordinate polling and offline retry intervals."""
 
-    def __init__(self, hass, my_api):
+    def __init__(self, hass, my_api, scan_interval):
         """Initialize my coordinator."""
+        self.my_api = my_api
+        self._normal_update_interval = timedelta(seconds=scan_interval)
+        self._consecutive_failures = 0
         super().__init__(
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
             name="IamMeterModbus Data",
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=3),
+            update_interval=self._normal_update_interval,
         )
-        self.my_api = my_api
 
     async def _async_update_data(self):
-        # Fetch data from API endpoint.
-        return await self.my_api.async_refresh_modbus_data()
+        """Fetch data and back off while the meter is offline."""
+        try:
+            data = await self.my_api.async_refresh_modbus_data()
+        except (OSError, TimeoutError, ModbusException, ValueError, IndexError) as err:
+            self._consecutive_failures = min(self._consecutive_failures + 1, 5)
+            retry_interval = min(
+                OFFLINE_RETRY_INTERVAL * 2 ** (self._consecutive_failures - 1),
+                MAX_OFFLINE_RETRY_INTERVAL,
+            )
+            self.update_interval = timedelta(seconds=retry_interval)
+            self.my_api.close()
+            raise UpdateFailed(
+                f"Error communicating with meter: {err}"
+            ) from err
+
+        self._consecutive_failures = 0
+        self.update_interval = self._normal_update_interval
+        return data
+
+    async def async_shutdown(self):
+        """Stop scheduled updates and close the Modbus connection."""
+        await super().async_shutdown()
+        self.my_api.close()
 
 
 class IammeterModbusHub:
-    """Thread safe wrapper class for pymodbus."""
+    """Asynchronous wrapper for pymodbus."""
 
     def __init__(
         self,
-        hass,
         name,
         host,
         port,
-        scan_interval,
         type,
     ):
         """Initialize the Modbus hub."""
-        self._hass = hass
-        self._client = ModbusTcpClient(host=host, port=port, timeout=2)
+        self._client = AsyncModbusTcpClient(
+            host=host,
+            port=int(port),
+            timeout=2,
+            retries=0,
+            reconnect_delay=0,
+        )
         self._value_attr_name = "count"
-        self._lock = threading.Lock()
         self._name = name
         self._type = type
-        self._scan_interval = timedelta(seconds=scan_interval)
-        self._unsub_interval_method = None
-        self._sensors = []
         self.data = {}
 
-    async def async_refresh_modbus_data(self, _now: Optional[int] = None):
-        """Time to update."""
-        self.connect()
+    async def async_refresh_modbus_data(self):
+        """Connect if needed and perform one asynchronous Modbus read."""
+        if not self._client.connected and not await self._client.connect():
+            raise ConnectionException("Unable to connect to meter")
 
-        try:
-            async with async_timeout.timeout(2):
-                update_result = self.read_modbus_data()
-                if update_result:
-                    return self.data
-        except (OSError, Timeout, ConnectionException) as err:
-            _LOGGER.error(f"Error communicating with API: {err}")
-            self.close()
-            await asyncio.sleep(5)  # Wait 5 seconds and try again
-            self.connect()
-            try:
-                async with async_timeout.timeout(2):
-                    update_result = self.read_modbus_data()
-                    if update_result:
-                        return self.data
-            except (OSError, Timeout, ConnectionException) as err:
-                raise UpdateFailed(
-                    f"Error communicating with API after retry: {err}")
+        await self.read_modbus_holding_registers()
+        return self.data
 
     @property
     def name(self):
@@ -173,73 +186,51 @@ class IammeterModbusHub:
 
     def close(self):
         """Disconnect client."""
-        with self._lock:
-            self._client.close()
+        self._client.close()
 
-    def connect(self):
-        """Connect client."""
-        with self._lock:
-            if not self._client.connected:
-                self._client.connect()
-
-    def read_modbus_data(self):
-        try:
-            return self.read_modbus_holding_registers()
-        except ConnectionException as ex:
-            raise UpdateFailed(f"Error communicating with API: {ex}")
-
-    def read_modbus_holding_registers(self):
+    async def read_modbus_holding_registers(self):
         """Read modbus holding registers with error handling and modern API."""
         typeCount = 66  # Extended to include all registers up to runtime at 64-65
         if self._type == TYPE_3080:
             typeCount = 8
 
-        # Add thread lock and handle different pymodbus versions
-        with self._lock:
-            try:
-                # Try new API first (pymodbus >= 3.10.0)
-                resp = self._client.read_holding_registers(
-                    address=0x0,
-                    count=typeCount,
-                    device_id=1
-                )
-            except TypeError:
-                # Fallback to old API (pymodbus < 3.10.0)
-                resp = self._client.read_holding_registers(
-                    address=0x0,
-                    count=typeCount,
-                    slave=1
-                )
+        try:
+            # pymodbus < 3.10.0. Try this first because older releases accept
+            # and silently ignore unknown keyword arguments.
+            resp = await self._client.read_holding_registers(
+                address=0x0,
+                count=typeCount,
+                slave=1,
+            )
+        except TypeError:
+            # pymodbus >= 3.10.0
+            resp = await self._client.read_holding_registers(
+                address=0x0,
+                count=typeCount,
+                device_id=1,
+            )
 
         if resp.isError():
-            _LOGGER.error(f"Modbus read error: {resp}")
-            return False
+            raise ModbusException(f"Modbus read error: {resp}")
 
         regs = resp.registers
+        if len(regs) < typeCount:
+            raise ModbusException(
+                f"Short Modbus response: expected {typeCount} registers, got {len(regs)}"
+            )
 
         def u16(i):
             """Read 16-bit unsigned integer"""
-            return self._client.convert_from_registers(
-                [regs[i]],
-                self._client.DATATYPE.UINT16,
-                word_order="big",
-            )
+            return regs[i] & 0xFFFF
 
         def s32(i):
             """Read 32-bit signed integer"""
-            return self._client.convert_from_registers(
-                regs[i:i+2],
-                self._client.DATATYPE.INT32,
-                word_order="big",
-            )
+            value = (regs[i] << 16) | regs[i + 1]
+            return value - 0x100000000 if value & 0x80000000 else value
 
         def u32(i):
             """Read 32-bit unsigned integer"""
-            return self._client.convert_from_registers(
-                regs[i:i+2],
-                self._client.DATATYPE.UINT32,
-                word_order="big",
-            )
+            return (regs[i] << 16) | regs[i + 1]
 
         if self._type == TYPE_3080:
             voltage_a = u16(0)

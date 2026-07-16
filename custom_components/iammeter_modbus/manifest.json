@@ -1,7 +1,7 @@
 {
   "domain": "iammeter_modbus",
-  "name": "IamMeter Modbus",
-  "version": "1.0.18",
+  "name": "IAMMETER Modbus TCP",
+  "version": "1.1.0",
   "documentation": "https://github.com/lewei50/ha_iammeter_modbus",
   "issue_tracker": "https://github.com/lewei50/ha_iammeter_modbus/issues",
   "requirements": ["pymodbus>=3.6.6"],

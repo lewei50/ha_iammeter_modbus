@@ -17,8 +17,15 @@ from .const import (
 	DEFAULT_SCAN_INTERVAL,
     DEFAULT_TYPE,
 	DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
     TYPE_3080,
     TYPE_3080T,
+)
+
+SCAN_INTERVAL_SCHEMA = vol.All(
+    vol.Coerce(int),
+    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
 )
 
 DATA_SCHEMA = vol.Schema(
@@ -27,7 +34,9 @@ DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080T, TYPE_3080]),
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+        vol.Optional(
+            CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+        ): SCAN_INTERVAL_SCHEMA,
     }
 )
 
@@ -130,7 +139,9 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HOST, default=user_input.get(CONF_HOST)): str,
                     vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080T, TYPE_3080]),
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                    vol.Optional(
+                        CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                    ): SCAN_INTERVAL_SCHEMA,
                 }
             ),
             errors=errors

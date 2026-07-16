@@ -2,11 +2,11 @@
   "config": {
     "step": {
       "user": {
-        "title": "Define your IamMeter modbus-connection",
+        "title": "Define your IAMMETER modbus-connection",
         "data": {
-          "host": "The ip-address of your IamMeter modbus device",
-          "name": "The prefix to be used for your IamMeter sensors",
-          "port": "The TCP port on which to connect to the IamMeter",
+          "host": "The ip-address of your IAMMETER modbus device",
+          "name": "The prefix to be used for your IAMMETER sensors",
+          "port": "The TCP port on which to connect to the IAMMETER",
           "scan_interval": "The polling frequency of the modbus registers in seconds"
         }
       }
