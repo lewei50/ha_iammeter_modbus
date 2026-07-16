@@ -9,13 +9,23 @@
           "port": "The TCP port on which to connect to the IAMMETER",
           "scan_interval": "The polling frequency of the modbus registers in seconds"
         }
+      },
+      "reconfigure": {
+        "title": "Update IAMMETER connection settings",
+        "data": {
+          "host": "The hostname or IP address of your IAMMETER device",
+          "port": "The Modbus TCP port",
+          "scan_interval": "The polling interval in seconds"
+        }
       }
     },
     "error": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "invalid_host": "Invalid hostname or IP address"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Connection settings updated successfully"
     }
   }
 }

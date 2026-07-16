@@ -20,6 +20,17 @@ from homeassistant.const import (
 
 TYPE_3080 = "WEM3080"
 TYPE_3080T = "WEM3080T"
+TYPE_3046T = "WEM3046T"
+TYPE_3050T = "WEM3050T"
+TYPE_2067 = "WEM2067"
+
+SUPPORTED_TYPES = (
+    TYPE_3080,
+    TYPE_3080T,
+    TYPE_3050T,
+    TYPE_3046T,
+    TYPE_2067,
+)
 
 DOMAIN = "iammeter_modbus"
 DEFAULT_NAME = "IAMMETER"
@@ -300,5 +311,19 @@ SENSOR_TYPES_3080: dict[str, list[IamMeterModbusSensorEntityDescription]] = {
 		native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-    ),
+	),
+}
+
+SENSOR_TYPES_2067 = {
+    key: description
+    for key, description in SENSOR_TYPES.items()
+    if not key.endswith("_c")
+}
+
+SENSOR_TYPES_BY_MODEL = {
+    TYPE_3080: SENSOR_TYPES_3080,
+    TYPE_3080T: SENSOR_TYPES,
+    TYPE_3050T: SENSOR_TYPES,
+    TYPE_3046T: SENSOR_TYPES,
+    TYPE_2067: SENSOR_TYPES_2067,
 }

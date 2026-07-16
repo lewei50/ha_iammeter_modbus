@@ -24,8 +24,9 @@ from .const import (
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     OFFLINE_RETRY_INTERVAL,
+    SUPPORTED_TYPES,
+    TYPE_2067,
     TYPE_3080,
-    TYPE_3080T,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ IAMMETER_MODBUS_SCHEMA = vol.Schema(
             cv.positive_int,
             vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
         ),
-        vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In([TYPE_3080, TYPE_3080T]),
+        vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In(SUPPORTED_TYPES),
     }
 )
 
@@ -288,24 +289,29 @@ class IammeterModbusHub:
             power_factor_b = u16(18)            # 18
             self.data["power_factor_b"] = round(power_factor_b * 0.001, 2)
 
-            # Skip register 19
-            voltage_c = u16(20)
-            self.data["voltage_c"] = round(voltage_c * 0.01, 1)
+            if self._type != TYPE_2067:
+                # Skip register 19
+                voltage_c = u16(20)
+                self.data["voltage_c"] = round(voltage_c * 0.01, 1)
 
-            current_c = u16(21)
-            self.data["current_c"] = round(current_c * 0.01, 1)
+                current_c = u16(21)
+                self.data["current_c"] = round(current_c * 0.01, 1)
 
-            power_c = s32(22)                   # 22~23
-            self.data["power_c"] = power_c
+                power_c = s32(22)                   # 22~23
+                self.data["power_c"] = power_c
 
-            import_energy_c = u32(24)           # 24~25
-            self.data["import_energy_c"] = round(import_energy_c * 0.00125, 2)
+                import_energy_c = u32(24)           # 24~25
+                self.data["import_energy_c"] = round(
+                    import_energy_c * 0.00125, 2
+                )
 
-            export_energy_c = u32(26)           # 26~27
-            self.data["export_energy_c"] = round(export_energy_c * 0.00125, 2)
+                export_energy_c = u32(26)           # 26~27
+                self.data["export_energy_c"] = round(
+                    export_energy_c * 0.00125, 2
+                )
 
-            power_factor_c = u16(28)            # 28
-            self.data["power_factor_c"] = round(power_factor_c * 0.001, 2)
+                power_factor_c = u16(28)            # 28
+                self.data["power_factor_c"] = round(power_factor_c * 0.001, 2)
 
             # Skip register 29
             frequency = u16(30)
@@ -342,14 +348,19 @@ class IammeterModbusHub:
             capacitive_kvarh_b = u32(48)         # 48~49
             self.data["capacitive_kvarh_b"] = round(capacitive_kvarh_b / 1000, 3)
 
-            reactive_power_c = s32(50)           # 50~51
-            self.data["reactive_power_c"] = reactive_power_c
+            if self._type != TYPE_2067:
+                reactive_power_c = s32(50)           # 50~51
+                self.data["reactive_power_c"] = reactive_power_c
 
-            inductive_kvarh_c = u32(52)          # 52~53
-            self.data["inductive_kvarh_c"] = round(inductive_kvarh_c / 1000, 3)
+                inductive_kvarh_c = u32(52)          # 52~53
+                self.data["inductive_kvarh_c"] = round(
+                    inductive_kvarh_c / 1000, 3
+                )
 
-            capacitive_kvarh_c = u32(54)         # 54~55
-            self.data["capacitive_kvarh_c"] = round(capacitive_kvarh_c / 1000, 3)
+                capacitive_kvarh_c = u32(54)         # 54~55
+                self.data["capacitive_kvarh_c"] = round(
+                    capacitive_kvarh_c / 1000, 3
+                )
 
             # Runtime at address 64
             runtime = u32(64)                    # 64~65

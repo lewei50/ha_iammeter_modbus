@@ -19,8 +19,7 @@ from .const import (
 	DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
-    TYPE_3080,
-    TYPE_3080T,
+    SUPPORTED_TYPES,
 )
 
 SCAN_INTERVAL_SCHEMA = vol.All(
@@ -32,7 +31,7 @@ DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
         vol.Required(CONF_HOST): str,
-        vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080T, TYPE_3080]),
+        vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In(SUPPORTED_TYPES),
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
@@ -137,7 +136,7 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, DEFAULT_NAME)): str,
                     vol.Required(CONF_HOST, default=user_input.get(CONF_HOST)): str,
-                    vol.Required(CONF_TYPE, default=DEFAULT_TYPE):vol.In([TYPE_3080T, TYPE_3080]),
+                    vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In(SUPPORTED_TYPES),
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                     vol.Optional(
                         CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
@@ -145,4 +144,36 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors
+        )
+
+    async def async_step_reconfigure(self, user_input=None):
+        """Update editable IAMMETER connection settings."""
+        entry = self._get_reconfigure_entry()
+        errors = {}
+
+        if user_input is not None:
+            if host_valid(user_input[CONF_HOST]):
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=user_input,
+                )
+            errors[CONF_HOST] = "invalid_host"
+
+        current = user_input or entry.data
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST, default=current[CONF_HOST]): str,
+                    vol.Required(CONF_PORT, default=current[CONF_PORT]): int,
+                    vol.Required(
+                        CONF_SCAN_INTERVAL,
+                        default=current.get(
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                        ),
+                    ): SCAN_INTERVAL_SCHEMA,
+                }
+            ),
+            errors=errors,
         )

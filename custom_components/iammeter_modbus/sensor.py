@@ -9,7 +9,12 @@ from homeassistant.helpers.update_coordinator import (
 import homeassistant.util.dt as dt_util
 from . import IamMeterModbusData
 
-from .const import ATTR_MANUFACTURER, DOMAIN, SENSOR_TYPES, SENSOR_TYPES_3080, TYPE_3080, TYPE_3080T, IamMeterModbusSensorEntityDescription
+from .const import (
+    ATTR_MANUFACTURER,
+    DOMAIN,
+    SENSOR_TYPES_BY_MODEL,
+    IamMeterModbusSensorEntityDescription,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,24 +34,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     }
 
     entities = []
-    if device_type == TYPE_3080T:
-        for sensor_description in SENSOR_TYPES.values():
-            sensor = IamMeterModbusSensor(
-                coordinator,
-                hub_name,
-                device_info,
-                sensor_description,
-            )
-            entities.append(sensor)
-    elif device_type == TYPE_3080:
-        for sensor_description in SENSOR_TYPES_3080.values():
-            sensor = IamMeterModbusSensor(
-                coordinator,
-                hub_name,
-                device_info,
-                sensor_description,
-            )
-            entities.append(sensor)
+    for sensor_description in SENSOR_TYPES_BY_MODEL[device_type].values():
+        sensor = IamMeterModbusSensor(
+            coordinator,
+            hub_name,
+            device_info,
+            sensor_description,
+        )
+        entities.append(sensor)
 
     async_add_entities(entities)
     return True

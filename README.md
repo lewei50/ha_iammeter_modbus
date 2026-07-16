@@ -15,12 +15,17 @@ Supports:
 
 - WEM3080
 - WEM3080T
+- WEM3050T
+- WEM3046T
+- WEM2067
 
 # IAMMETER
 
 ------
 
-[IAMMETER](https://www.iammeter.com/) provides both a bi-directional single-phase energy meter([WEM3080](https://www.iammeter.com/products/single-phase-meter)) and a bi-directional three-phase energy monitor ([WEM3080T](https://www.iammeter.com/products/three-phase-meter)). Both of them can be integrated into Home Assistant.
+[IAMMETER](https://www.iammeter.com/) meters supported by this integration include
+the single-phase WEM3080, three-phase WEM3080T/WEM3050T/WEM3046T, and split-meter
+WEM2067 models.
 
 ## Installation
 
@@ -49,6 +54,11 @@ It is configurable through config flow, meaning it will popup a dialog after add
 5. Set the polling interval in seconds (default: `3`, allowed range: `1–3600`).
 6. Select **Submit → Finish**.
 
+For an existing device, select **Reconfigure** on the integration entry to update
+its IP address, Modbus TCP port, or polling interval. Saving these settings
+reloads the integration automatically. The device name and model cannot be
+changed from this page.
+
 The configured polling interval is used while the meter is online. If the meter
 goes offline, retries automatically back off to 5, 10, 20, 40 and then 60
 seconds, avoiding excessive connection attempts. The configured polling interval
@@ -68,7 +78,7 @@ Sensors available in the library:
 | wem3080_importenergy | kWh  | Energy consumption from grid |
 | wem3080_exportgrid   | kWh  | Energy export to grid        |
 
-### THREE-PHASE ENERGY METER (WEM3080T)
+### THREE-PHASE ENERGY METER (WEM3080T/WEM3050T/WEM3046T)
 
 | name                    | Unit | Description           |
 | :---------------------- | :--- | :-------------------- |
@@ -107,3 +117,8 @@ Sensors available in the library:
 | wem3080t_inductive_kvarh_c | kvarh | C phase inductive reactive energy |
 | wem3080t_capacitive_kvarh_c | kvarh | C phase capacitive reactive energy |
 | wem3080t_runtime        | s    | Meter runtime          |
+
+### SPLIT METER (WEM2067)
+
+WEM2067 provides the same A-phase, B-phase, frequency, total, reactive-energy,
+and runtime sensors listed above. C-phase sensors are not created for this model.
