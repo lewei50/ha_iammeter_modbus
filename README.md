@@ -8,6 +8,11 @@ IAMMETER Modbus TCP custom component for Home Assistant.
 
 Requires firmware version 75.82 or later.
 
+Model-specific minimum firmware versions:
+
+- WEM2067: `i.91.063T31` or later, required for the correct split-phase data layout.
+- WEM3063T: `i.91.065.12` or later, required for correct reactive-power scaling.
+
 Multiple instances are supported. Give each meter a unique name, such as
 `IAMMETER Main` or `IAMMETER Garage`.
 
@@ -57,12 +62,14 @@ It is configurable through config flow, meaning it will popup a dialog after add
 2. Search for `iammeter_modbus`.
 3. Enter a unique name for the meter.
 4. Enter the meter IP address, device type and Modbus TCP port (default: `502`).
+   Device type defaults to `Auto`, which reads Modbus TCP register `9` and
+   selects the matching supported model automatically.
 5. Set the polling interval in seconds (default: `3`, allowed range: `1–3600`).
 6. Select **Submit → Finish**.
 
 For an existing device, select **Reconfigure** on the integration entry to update
-its IP address, Modbus TCP port, or polling interval. Saving these settings
-reloads the integration automatically. The device name and model cannot be
+its IP address, device type, Modbus TCP port, or polling interval. Saving these
+settings reloads the integration automatically. The device name cannot be
 changed from this page.
 
 The configured polling interval is used while the meter is online. If the meter

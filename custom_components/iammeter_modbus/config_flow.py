@@ -136,7 +136,10 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, DEFAULT_NAME)): str,
                     vol.Required(CONF_HOST, default=user_input.get(CONF_HOST)): str,
-                    vol.Required(CONF_TYPE, default=DEFAULT_TYPE): vol.In(SUPPORTED_TYPES),
+                    vol.Required(
+                        CONF_TYPE,
+                        default=user_input.get(CONF_TYPE, DEFAULT_TYPE),
+                    ): vol.In(SUPPORTED_TYPES),
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                     vol.Optional(
                         CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
@@ -166,6 +169,10 @@ class IammeterModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_HOST, default=current[CONF_HOST]): str,
+                    vol.Required(
+                        CONF_TYPE,
+                        default=current.get(CONF_TYPE, DEFAULT_TYPE),
+                    ): vol.In(SUPPORTED_TYPES),
                     vol.Required(CONF_PORT, default=current[CONF_PORT]): int,
                     vol.Required(
                         CONF_SCAN_INTERVAL,

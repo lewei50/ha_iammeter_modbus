@@ -25,9 +25,11 @@ from .const import (
     MIN_SCAN_INTERVAL,
     OFFLINE_RETRY_INTERVAL,
     SUPPORTED_TYPES,
+    TYPE_AUTO,
     TYPE_2067,
     TYPE_3080,
 )
+from .models import detect_meter_type
 from .scales import decode_current, decode_power
 
 _LOGGER = logging.getLogger(__name__)
@@ -170,13 +172,17 @@ class IammeterModbusHub:
         )
         self._value_attr_name = "count"
         self._name = name
+        self._configured_type = type
         self._type = type
         self.data = {}
 
     async def async_refresh_modbus_data(self):
         """Connect if needed and perform one asynchronous Modbus read."""
-        if not self._client.connected and not await self._client.connect():
-            raise ConnectionException("Unable to connect to meter")
+        if not self._client.connected:
+            if not await self._client.connect():
+                raise ConnectionException("Unable to connect to meter")
+            if self._configured_type == TYPE_AUTO:
+                self._type = TYPE_AUTO
 
         await self.read_modbus_holding_registers()
         return self.data
@@ -186,31 +192,60 @@ class IammeterModbusHub:
         """Return the name of this hub."""
         return self._name
 
+    @property
+    def meter_type(self):
+        """Return the configured or automatically detected meter type."""
+        return self._type
+
     def close(self):
         """Disconnect client."""
         self._client.close()
 
-    async def read_modbus_holding_registers(self):
-        """Read modbus holding registers with error handling and modern API."""
-        typeCount = 66  # Extended to include all registers up to runtime at 64-65
-        if self._type == TYPE_3080:
-            typeCount = 8
-
+    async def _async_read_holding_registers(self, address, count):
+        """Read holding registers across supported pymodbus versions."""
         try:
             # pymodbus < 3.10.0. Try this first because older releases accept
             # and silently ignore unknown keyword arguments.
-            resp = await self._client.read_holding_registers(
-                address=0x0,
-                count=typeCount,
+            return await self._client.read_holding_registers(
+                address=address,
+                count=count,
                 slave=1,
             )
         except TypeError:
             # pymodbus >= 3.10.0
-            resp = await self._client.read_holding_registers(
-                address=0x0,
-                count=typeCount,
+            return await self._client.read_holding_registers(
+                address=address,
+                count=count,
                 device_id=1,
             )
+
+    async def read_modbus_holding_registers(self):
+        """Read modbus holding registers with error handling and modern API."""
+        if self._type == TYPE_AUTO:
+            model_response = await self._async_read_holding_registers(
+                address=0x0009,
+                count=1,
+            )
+            if model_response.isError():
+                raise ModbusException(f"Modbus model read error: {model_response}")
+            if not model_response.registers:
+                raise ModbusException("Short Modbus model response")
+            try:
+                self._type = detect_meter_type(
+                    model_response.registers[0] & 0xFFFF
+                )
+            except ValueError as err:
+                raise ModbusException(str(err)) from err
+            _LOGGER.info("Automatically detected IAMMETER model %s", self._type)
+
+        typeCount = 66  # Extended to include all registers up to runtime at 64-65
+        if self._type == TYPE_3080:
+            typeCount = 8
+
+        resp = await self._async_read_holding_registers(
+            address=0x0,
+            count=typeCount,
+        )
 
         if resp.isError():
             raise ModbusException(f"Modbus read error: {resp}")
