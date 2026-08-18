@@ -28,6 +28,7 @@ from .const import (
     TYPE_2067,
     TYPE_3080,
 )
+from .scales import decode_current, decode_power
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER_MODBUS_LIB = logging.getLogger("pymodbus.logging")
@@ -256,10 +257,10 @@ class IammeterModbusHub:
             self.data["voltage_a"] = round(voltage_a * 0.01, 1)
 
             current_a = u16(1)
-            self.data["current_a"] = round(current_a * 0.01, 1)
+            self.data["current_a"] = decode_current(current_a, self._type)
 
             power_a = s32(2)                    # 2~3
-            self.data["power_a"] = power_a
+            self.data["power_a"] = decode_power(power_a, self._type)
 
             import_energy_a = u32(4)            # 4~5
             self.data["import_energy_a"] = round(import_energy_a * 0.00125, 2)
@@ -275,10 +276,10 @@ class IammeterModbusHub:
             self.data["voltage_b"] = round(voltage_b * 0.01, 1)
 
             current_b = u16(11)
-            self.data["current_b"] = round(current_b * 0.01, 1)
+            self.data["current_b"] = decode_current(current_b, self._type)
 
             power_b = s32(12)                   # 12~13
-            self.data["power_b"] = power_b
+            self.data["power_b"] = decode_power(power_b, self._type)
 
             import_energy_b = u32(14)           # 14~15
             self.data["import_energy_b"] = round(import_energy_b * 0.00125, 2)
@@ -295,10 +296,10 @@ class IammeterModbusHub:
                 self.data["voltage_c"] = round(voltage_c * 0.01, 1)
 
                 current_c = u16(21)
-                self.data["current_c"] = round(current_c * 0.01, 1)
+                self.data["current_c"] = decode_current(current_c, self._type)
 
                 power_c = s32(22)                   # 22~23
-                self.data["power_c"] = power_c
+                self.data["power_c"] = decode_power(power_c, self._type)
 
                 import_energy_c = u32(24)           # 24~25
                 self.data["import_energy_c"] = round(
@@ -319,7 +320,7 @@ class IammeterModbusHub:
 
             # Skip register 31
             total_power = s32(32)               # 32~33
-            self.data["total_power"] = total_power
+            self.data["total_power"] = decode_power(total_power, self._type)
 
             total_import_energy = u32(34)       # 34~35
             self.data["total_import_energy"] = round(
@@ -331,7 +332,9 @@ class IammeterModbusHub:
 
             # Reactive power readings
             reactive_power_a = s32(38)           # 38~39
-            self.data["reactive_power_a"] = reactive_power_a
+            self.data["reactive_power_a"] = decode_power(
+                reactive_power_a, self._type
+            )
 
             inductive_kvarh_a = u32(40)          # 40~41
             self.data["inductive_kvarh_a"] = round(inductive_kvarh_a / 1000, 3)
@@ -340,7 +343,9 @@ class IammeterModbusHub:
             self.data["capacitive_kvarh_a"] = round(capacitive_kvarh_a / 1000, 3)
 
             reactive_power_b = s32(44)           # 44~45
-            self.data["reactive_power_b"] = reactive_power_b
+            self.data["reactive_power_b"] = decode_power(
+                reactive_power_b, self._type
+            )
 
             inductive_kvarh_b = u32(46)          # 46~47
             self.data["inductive_kvarh_b"] = round(inductive_kvarh_b / 1000, 3)
@@ -350,7 +355,9 @@ class IammeterModbusHub:
 
             if self._type != TYPE_2067:
                 reactive_power_c = s32(50)           # 50~51
-                self.data["reactive_power_c"] = reactive_power_c
+                self.data["reactive_power_c"] = decode_power(
+                    reactive_power_c, self._type
+                )
 
                 inductive_kvarh_c = u32(52)          # 52~53
                 self.data["inductive_kvarh_c"] = round(

@@ -17,6 +17,7 @@ Supports:
 - WEM3080T
 - WEM3050T
 - WEM3046T
+- WEM3063T
 - WEM2067
 
 # IAMMETER
@@ -24,8 +25,13 @@ Supports:
 ------
 
 [IAMMETER](https://www.iammeter.com/) meters supported by this integration include
-the single-phase WEM3080, three-phase WEM3080T/WEM3050T/WEM3046T, and split-meter
+the single-phase WEM3080, three-phase WEM3080T/WEM3050T/WEM3046T/WEM3063T, and split-meter
 WEM2067 models.
+
+For local Modbus TCP data, WEM3046T and WEM3063T use `DATA/1000 A` for
+phase current and `DATA/10` for phase/total active power and phase reactive
+power. WEM3080T and WEM3050T use `DATA/100 A` and unscaled power values.
+Active and reactive energy scales are unchanged.
 
 ## Installation
 
@@ -78,7 +84,7 @@ Sensors available in the library:
 | wem3080_importenergy | kWh  | Energy consumption from grid |
 | wem3080_exportgrid   | kWh  | Energy export to grid        |
 
-### THREE-PHASE ENERGY METER (WEM3080T/WEM3050T/WEM3046T)
+### THREE-PHASE ENERGY METER (WEM3080T/WEM3050T/WEM3046T/WEM3063T)
 
 | name                    | Unit | Description           |
 | :---------------------- | :--- | :-------------------- |
